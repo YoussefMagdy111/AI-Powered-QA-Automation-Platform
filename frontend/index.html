@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QA Ninjas — Agentic AI Test Suite Generator</title>
+<style>
+:root{
+  --bg:#080d18;--surface:#0d1526;--card:#111e35;--card2:#0f1a2e;
+  --border:#1a2d4a;--accent:#6c63ff;--accent2:#00d4aa;--warn:#f5a623;
+  --fail:#ff4757;--text:#e2e8f0;--dim:#8892a4;--mute:#3a4560;
+  --radius:12px;--tr:.2s ease;
+  --hdr:57px;--tabbar:46px;--content:calc(100vh - var(--hdr) - var(--tabbar));
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;line-height:1.6}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--mute);border-radius:3px}
+
+/* ── Header ── */
+header{height:var(--hdr);background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:200}
+.logo{display:flex;align-items:center;gap:.6rem}
+.logo-icon{font-size:1.5rem}
+.logo-text h1{font-size:1.2rem;font-weight:800;background:linear-gradient(135deg,#6c63ff,#00d4aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.logo-text p{font-size:.68rem;color:var(--dim);margin-top:1px}
+.header-right{display:flex;gap:.5rem;margin-left:auto;align-items:center}
+.pill{display:flex;align-items:center;gap:.3rem;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:.22rem .7rem;font-size:.72rem;color:var(--dim)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.icon-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.38rem .75rem;color:var(--dim);cursor:pointer;font-size:.8rem;transition:var(--tr)}
+.icon-btn:hover{background:var(--border);color:var(--text)}
+
+/* ── Tab bar ── */
+.tab-bar{height:var(--tabbar);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:stretch;padding:0 1rem;gap:.15rem}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:0 1.1rem;color:var(--dim);cursor:pointer;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.4rem;transition:var(--tr);white-space:nowrap;margin-bottom:-1px}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn .tab-badge{background:var(--accent);color:#fff;border-radius:10px;padding:.05rem .42rem;font-size:.65rem;font-weight:800}
+.tab-btn .tab-badge.green{background:var(--accent2)}
+
+/* ── Tab views ── */
+.tab-view{display:none;height:var(--content);overflow:hidden}
+.tab-view.active{display:flex;flex-direction:column}
+.tab-scroll{flex:1;overflow-y:auto;padding:1.4rem 1.8rem}
+
+/* ── Cards / Panels ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem}
+.panel-title{font-size:.88rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.45rem;margin-bottom:.9rem}
+.panel-title .icon{font-size:1rem}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+@media(max-width:1000px){.two-col{grid-template-columns:1fr}.three-col{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.three-col{grid-template-columns:1fr}}
+
+/* ── Inputs ── */
+textarea{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.85rem;color:var(--text);font-size:.86rem;font-family:inherit;resize:vertical;outline:none;transition:var(--tr);min-height:210px}
+textarea:focus{border-color:var(--accent)}
+textarea::placeholder{color:var(--mute)}
+input[type=text]{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;color:var(--text);font-size:.84rem;outline:none;transition:var(--tr);font-family:inherit}
+input[type=text]:focus{border-color:var(--accent)}
+input[type=text]::placeholder{color:var(--mute)}
+
+/* ── Buttons ── */
+.btn{border:none;border-radius:9px;padding:.6rem 1.3rem;font-size:.88rem;font-weight:700;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:.45rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,#6c63ff,#5a52e0);color:#fff;width:100%;justify-content:center}
+.btn-primary:hover:not(:disabled){filter:brightness(1.12)}
+.btn-success{background:linear-gradient(135deg,#00d4aa,#00a88a);color:#fff;width:100%;justify-content:center}
+.btn-success:hover:not(:disabled){filter:brightness(1.1)}
+.btn-ghost{background:var(--card2);color:var(--dim);border:1px solid var(--border)}
+.btn-ghost:hover:not(:disabled){border-color:var(--accent);color:var(--text)}
+.btn-sm{padding:.38rem .85rem;font-size:.78rem;border-radius:7px;width:auto}
+.btn-danger{background:none;border:1px solid #ff475740;color:var(--fail);border-radius:7px;padding:.35rem .75rem;font-size:.76rem;cursor:pointer;transition:var(--tr)}
+.btn-danger:hover{background:#ff475715}
+.btn-jira{background:linear-gradient(135deg,#0052cc,#0065ff);color:#fff;width:100%;justify-content:center}
+.btn-jira:hover:not(:disabled){filter:brightness(1.12)}
+.btn-pdf{background:linear-gradient(135deg,#e53935,#c62828);color:#fff;width:100%;justify-content:center}
+.btn-pdf:hover:not(:disabled){filter:brightness(1.12)}
+
+/* ── Export bar ── */
+.export-bar{display:flex;flex-direction:column;gap:.55rem;padding:.9rem 1.1rem;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);margin-top:.5rem}
+.export-row{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.export-row-label{font-size:.75rem;font-weight:700;color:var(--dim);min-width:80px;flex-shrink:0}
+.export-row-btns{display:flex;gap:.5rem;flex:1;flex-wrap:wrap}
+.export-row-btns .btn{flex:1;min-width:120px}
+
+/* ── Spinner ── */
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid #ffffff40;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Pipeline steps ── */
+.steps{display:flex;flex-direction:column;gap:.5rem}
+.step{display:flex;align-items:flex-start;gap:.7rem;padding:.65rem .85rem;border-radius:10px;border:1px solid var(--border);background:var(--card2);transition:var(--tr)}
+.step.active{border-color:var(--warn);background:#f5a62308}
+.step.done{border-color:var(--accent2);background:#00d4aa08}
+.step-icon{font-size:1.05rem;margin-top:.1rem}
+.step-name{font-size:.83rem;font-weight:700;color:var(--text)}
+.step-sub{font-size:.74rem;color:var(--dim);margin-top:.05rem}
+
+/* ── Metrics ── */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;margin-bottom:1rem}
+@media(max-width:700px){.metrics{grid-template-columns:repeat(3,1fr)}}
+.metric{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.75rem .5rem;text-align:center}
+.metric-num{font-size:1.3rem;font-weight:800;color:var(--accent)}
+.metric-label{font-size:.66rem;color:var(--dim);margin-top:.2rem}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:.16rem .6rem;border-radius:20px;font-size:.7rem;font-weight:700;border:1px solid}
+.badge-high{background:#ff475718;color:var(--fail);border-color:#ff475750}
+.badge-medium{background:#f5a62318;color:var(--warn);border-color:#f5a62350}
+.badge-low{background:#00d4aa18;color:var(--accent2);border-color:#00d4aa50}
+
+/* ── Analysis tabs ── */
+.atab-bar{display:flex;gap:.25rem;border-bottom:1px solid var(--border);padding-bottom:0;overflow-x:auto;margin-bottom:0}
+.atab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:.45rem .8rem;color:var(--dim);cursor:pointer;font-size:.78rem;font-weight:600;white-space:nowrap;transition:var(--tr);margin-bottom:-1px}
+.atab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.atab-panel{display:none;padding:.75rem 0}
+.atab-panel.active{display:block}
+.report-box{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.9rem;max-height:260px;overflow-y:auto;font-size:.8rem;color:#c8d0e0;white-space:pre-wrap;font-family:'Cascadia Code','Fira Code',monospace;line-height:1.6}
+.point-list{list-style:none;display:flex;flex-direction:column;gap:.35rem}
+.point-item{display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .75rem;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:.8rem;color:#c8d0e0;line-height:1.5}
+.point-num{min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.66rem;font-weight:800;flex-shrink:0;margin-top:.15rem}
+.pn-gap{background:#ff475720;color:var(--fail);border:1px solid #ff475555}
+.pn-tech{background:#f5a62320;color:var(--warn);border:1px solid #f5a62355}
+.pn-sol{background:#00d4aa20;color:var(--accent2);border:1px solid #00d4aa55}
+.pn-rev{background:#6c63ff20;color:var(--accent);border:1px solid #6c63ff55}
+.info-box{background:#6c63ff10;border:1px solid #6c63ff35;border-radius:8px;padding:.7rem .9rem;font-size:.8rem;color:#c8d0e0;line-height:1.6;margin-bottom:.6rem}
+.success-box{background:#00d4aa10;border:1px solid #00d4aa35;border-radius:8px;padding:.7rem .9rem;font-size:.8rem;color:#c8d0e0;line-height:1.6;margin-bottom:.6rem}
+.divider{border:none;border-top:1px solid var(--border);margin:.8rem 0}
+.download-row{display:flex;gap:.6rem}
+.download-row .btn{flex:1}
+.empty-state{text-align:center;color:var(--dim);font-size:.85rem;padding:3rem 2rem;line-height:1.9}
+.empty-icon{font-size:2.8rem;margin-bottom:.6rem}
+
+/* ── Generate More ── */
+.more-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem}
+.slider-wrap{display:flex;align-items:center;gap:.8rem}
+.slider-wrap input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-val{min-width:32px;font-weight:700;color:var(--accent);font-size:.92rem;text-align:right}
+
+/* ── History tab ── */
+.hist-toolbar{display:flex;gap:.7rem;align-items:center;margin-bottom:1.1rem}
+.search-input{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:.55rem 1rem;color:var(--text);font-size:.85rem;outline:none;transition:var(--tr);font-family:inherit}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--mute)}
+.hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
+.hcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;display:flex;flex-direction:column;gap:.65rem;transition:var(--tr)}
+.hcard:hover{border-color:var(--accent);box-shadow:0 0 0 1px #6c63ff20}
+.hcard.active-hist{border-color:var(--accent2);background:#00d4aa04}
+.hcard-top{display:flex;align-items:center;gap:.55rem}
+.run-num{background:var(--mute);color:var(--text);border-radius:5px;padding:.08rem .45rem;font-size:.68rem;font-weight:800;white-space:nowrap;flex-shrink:0}
+.label-input{flex:1;background:transparent;border:1px solid transparent;border-radius:6px;padding:.25rem .5rem;color:var(--text);font-size:.82rem;font-weight:600;outline:none;transition:var(--tr);font-family:inherit;min-width:0}
+.label-input:hover{border-color:var(--border)}
+.label-input:focus{border-color:var(--accent);background:var(--card2)}
+.label-input::placeholder{color:var(--mute);font-weight:400}
+.hcard-time{font-size:.72rem;color:var(--dim)}
+.hcard-preview{font-size:.78rem;color:#b0bcd0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hcard-meta{display:flex;gap:.35rem;flex-wrap:wrap}
+.hbadge{font-size:.67rem;padding:.1rem .45rem;border-radius:10px;font-weight:700;border:1px solid}
+.hb-tc{background:#6c63ff18;color:var(--accent);border-color:#6c63ff40}
+.hb-cov{background:#00d4aa18;color:var(--accent2);border-color:#00d4aa40}
+.hcard-actions{display:flex;gap:.4rem;flex-wrap:wrap}
+.hcard-btn{flex:1;min-width:80px;background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:.35rem .55rem;font-size:.74rem;color:var(--dim);cursor:pointer;transition:var(--tr);text-align:center;white-space:nowrap}
+.hcard-btn:hover{border-color:var(--accent);color:var(--text)}
+.hcard-btn.dl{border-color:#00d4aa40;color:var(--accent2)}
+.hcard-btn.dl:hover{background:#00d4aa12}
+.hcard-btn.del{border-color:#ff475730;color:var(--fail)}
+.hcard-btn.del:hover{background:#ff475712}
+.hist-empty{text-align:center;padding:4rem 2rem;color:var(--mute);font-size:.88rem;line-height:1.8}
+.hist-count{font-size:.78rem;color:var(--dim);white-space:nowrap}
+
+/* ── Chat tab ── */
+.chat-wrap{display:flex;flex-direction:column;height:100%}
+.chat-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.4rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0}
+.chat-topbar-title{font-size:.88rem;font-weight:700;color:var(--text)}
+.chat-topbar-sub{font-size:.71rem;color:var(--dim);margin-left:auto}
+.cmp-bar{border-bottom:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cmp-toggle{width:100%;background:none;border:none;padding:.6rem 1.4rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;color:var(--dim);font-size:.78rem;font-weight:600;text-align:left;transition:var(--tr)}
+.cmp-toggle:hover{color:var(--text)}
+.cmp-toggle .caret{margin-left:auto;font-size:.7rem;transition:transform .2s}
+.cmp-toggle.open .caret{transform:rotate(180deg)}
+.ctx-pill{background:#6c63ff22;color:var(--accent);border:1px solid #6c63ff40;border-radius:10px;padding:.06rem .45rem;font-size:.68rem;font-weight:700}
+.cmp-drawer{display:none;padding:.6rem 1.4rem .8rem;border-top:1px solid var(--border);max-height:200px;overflow-y:auto}
+.cmp-drawer.open{display:block}
+.cmp-hint{font-size:.74rem;color:var(--dim);margin-bottom:.5rem}
+.cmp-rows{display:flex;flex-direction:column;gap:.3rem}
+.cmp-row{display:flex;align-items:flex-start;gap:.5rem;padding:.4rem .5rem;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:var(--tr)}
+.cmp-row:hover{border-color:var(--accent)}
+.cmp-row.selected{border-color:var(--accent);background:#6c63ff0d}
+.cmp-row input[type=checkbox]{accent-color:var(--accent);margin-top:.15rem;flex-shrink:0}
+.cmp-meta-title{font-size:.76rem;color:var(--text);font-weight:600}
+.cmp-meta-sub{font-size:.69rem;color:var(--dim);margin-top:.03rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-no-hist{font-size:.75rem;color:var(--mute);padding:.4rem 0;text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;padding:.7rem 1.4rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.chip{background:var(--card2);border:1px solid var(--border);color:var(--dim);border-radius:20px;padding:.28rem .85rem;font-size:.73rem;cursor:pointer;transition:var(--tr)}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chat-messages{flex:1;overflow-y:auto;padding:1.1rem 1.4rem;display:flex;flex-direction:column;gap:.75rem}
+.chat-empty-msg{text-align:center;color:var(--dim);font-size:.82rem;padding:2rem 0;line-height:1.8}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-user .bubble{background:linear-gradient(135deg,#6c63ff,#5a52e0);color:#fff;border-radius:16px 16px 4px 16px;padding:.6rem .95rem;max-width:72%;font-size:.83rem;line-height:1.5}
+.msg-bot{display:flex;gap:.5rem;align-items:flex-start}
+.msg-bot .avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#00d4aa,#6c63ff);display:flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0;margin-top:2px}
+.msg-bot .bubble{background:var(--card2);color:#c8d0e0;border-radius:16px 16px 16px 4px;padding:.6rem .95rem;max-width:78%;font-size:.83rem;line-height:1.6;border:1px solid var(--border)}
+.chat-input-bar{border-top:1px solid var(--border);padding:.8rem 1.2rem;display:flex;gap:.55rem;align-items:center;flex-shrink:0;background:var(--surface)}
+.chat-input{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.52rem .85rem;color:var(--text);font-size:.84rem;outline:none;font-family:inherit;transition:var(--tr)}
+.chat-input:focus{border-color:var(--accent)}
+.chat-input::placeholder{color:var(--mute)}
+
+/* ── Settings drawer ── */
+.drawer-overlay{position:fixed;inset:0;background:#00000060;z-index:300;display:none}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;top:0;right:0;width:300px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:301;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;padding:1.4rem 1.3rem;display:flex;flex-direction:column;gap:1.2rem}
+.drawer.open{transform:translateX(0)}
+.drawer-header{display:flex;align-items:center;justify-content:space-between}
+.drawer-title{font-size:.95rem;font-weight:800;color:var(--text)}
+.drawer-close{background:none;border:1px solid var(--border);border-radius:7px;padding:.3rem .6rem;color:var(--dim);cursor:pointer;font-size:.82rem;transition:var(--tr)}
+.drawer-close:hover{border-color:var(--fail);color:var(--fail)}
+.drw-section h3{font-size:.75rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem}
+.radio-group{display:flex;flex-direction:column;gap:.35rem}
+.radio-opt{display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.42rem .6rem;border-radius:8px;border:1px solid var(--border);background:var(--card2);transition:var(--tr);font-size:.83rem}
+.radio-opt:hover,.radio-opt.active{border-color:var(--accent);background:#6c63ff12}
+.radio-opt input{accent-color:var(--accent)}
+.drw-note{font-size:.74rem;color:var(--dim);line-height:1.5;padding:.45rem .6rem;background:var(--card2);border-radius:8px;border:1px solid var(--border);margin-top:.4rem}
+.drw-input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.48rem .68rem;color:var(--text);font-size:.82rem;outline:none;transition:var(--tr);margin-bottom:.3rem}
+.drw-input:focus{border-color:var(--accent)}
+.drw-input::placeholder{color:var(--mute)}
+label.drw-label{font-size:.76rem;color:var(--dim);display:block;margin-bottom:.25rem}
+.conn-status{font-size:.74rem;margin-top:.35rem;padding:.32rem .6rem;border-radius:6px;display:none}
+.conn-ok{background:#00d4aa15;color:var(--accent2);border:1px solid #00d4aa40;display:block}
+.conn-err{background:#ff475715;color:var(--fail);border:1px solid #ff475740;display:block}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:1.4rem;right:1.4rem;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.1rem;font-size:.81rem;color:var(--text);z-index:9999;transform:translateY(80px);opacity:0;transition:.3s ease;max-width:300px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--accent2)}
+#toast.err{border-color:var(--fail)}
+
+/* ── Auth overlay ── */
+.auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;align-items:center;justify-content:center}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:2.4rem 2rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:1.1rem;box-shadow:0 20px 60px #00000060}
+.auth-logo{text-align:center;margin-bottom:.4rem}
+.auth-logo-icon{font-size:2.5rem;display:block;margin-bottom:.4rem}
+.auth-logo h2{font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,#6c63ff,#00d4aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-logo p{font-size:.74rem;color:var(--dim);margin-top:.2rem}
+.auth-title{font-size:1rem;font-weight:800;color:var(--text);text-align:center}
+.auth-field{display:flex;flex-direction:column;gap:.3rem}
+.auth-field label{font-size:.76rem;color:var(--dim);font-weight:600}
+.auth-field input{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:.65rem .9rem;color:var(--text);font-size:.88rem;outline:none;transition:.2s;font-family:inherit;width:100%}
+.auth-field input:focus{border-color:var(--accent)}
+.auth-btn{background:linear-gradient(135deg,#6c63ff,#5a52e0);color:#fff;border:none;border-radius:10px;padding:.75rem;font-size:.92rem;font-weight:700;cursor:pointer;width:100%;transition:.2s;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.auth-btn:hover{filter:brightness(1.1)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-switch{text-align:center;font-size:.79rem;color:var(--dim)}
+.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600}
+.auth-switch span:hover{text-decoration:underline}
+.auth-error{background:#ff475712;border:1px solid #ff475740;border-radius:8px;padding:.6rem .9rem;font-size:.79rem;color:var(--fail);display:none}
+.user-pill{display:flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:.22rem .7rem;font-size:.72rem;color:var(--dim)}
+.user-pill .uname{color:var(--text);font-weight:600}
+.logout-btn{background:none;border:1px solid #ff475740;border-radius:7px;padding:.22rem .65rem;color:var(--fail);font-size:.72rem;cursor:pointer;transition:.2s}
+.logout-btn:hover{background:#ff475712}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧪</div>
+    <div class="logo-text">
+      <h1>QA Ninjas</h1>
+      <p>Agentic AI · Three-Agent Pipeline · CrewAI + Groq</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="pill"><span class="dot"></span> Groq llama-3.3-70b</div>
+    <div class="pill" id="tc-pill" style="display:none">📋 <span id="hdr-tc">0</span> cases</div>
+    <div class="user-pill" id="user-pill" style="display:none">
+      👤 <span class="uname" id="user-name"></span>
+    </div>
+    <button class="logout-btn" id="logout-btn" style="display:none" onclick="doLogout()">Sign out</button>
+    <button class="icon-btn" onclick="openDrawer()">⚙️ Settings</button>
+  </div>
+</header>
+
+<!-- ── Tab bar ──────────────────────────────────────────────── -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tb-generate" onclick="switchTab('generate')">🚀 Generate</button>
+  <button class="tab-btn" id="tb-results" onclick="switchTab('results')">📊 Results <span class="tab-badge" id="tb-results-badge" style="display:none">0</span></button>
+  <button class="tab-btn" id="tb-history" onclick="switchTab('history')">🕓 History <span class="tab-badge green" id="tb-hist-badge" style="display:none">0</span></button>
+  <button class="tab-btn" id="tb-chat" onclick="switchTab('chat')">💬 Chat</button>
+  <button class="tab-btn" id="tb-figma" onclick="switchTab('figma')">🎨 Figma</button>
+</div>
+
+<!-- ══════════════ TAB: GENERATE ══════════════ -->
+<div class="tab-view active" id="tv-generate">
+  <div class="tab-scroll">
+    <div class="two-col" style="align-items:start">
+
+      <!-- Story Input -->
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="panel">
+          <div class="panel-title"><span class="icon">📝</span> User Story Input</div>
+          <textarea id="story-input" placeholder="As an SME customer,
+I want the system to identify whether I am a new or existing bank customer using my National ID and Mobile Number when applying for a loan,
+So that my CIF is correctly retrieved or created, and my loan request is processed without duplication or errors.
+
+Acceptance Criteria:
+- System validates National ID (14 digits) and Mobile Number format
+- Existing customers are identified by National ID match in core banking
+- New customers are registered with a new CIF
+- Duplicate loan applications are rejected with a clear error message"></textarea>
+          <button class="btn btn-primary" id="generate-btn" onclick="generate()" style="margin-top:.75rem">
+            <span id="gen-icon">🚀</span>
+            <span id="gen-label">Generate Test Suite</span>
+          </button>
+        </div>
+
+        <!-- Generate More (shown after generation) -->
+        <div class="more-panel" id="more-panel" style="display:none">
+          <div class="panel-title" style="margin-bottom:.65rem"><span class="icon">➕</span> Generate More Test Cases</div>
+          <div style="font-size:.79rem;color:var(--dim);margin-bottom:.75rem">Add non-duplicate edge-case and boundary test cases.</div>
+          <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:.65rem">
+            <div class="slider-wrap" style="flex:1">
+              <span style="font-size:.79rem;color:var(--dim)">Cases:</span>
+              <input type="range" min="5" max="30" step="5" value="10" id="more-slider" oninput="document.getElementById('slider-val').textContent=this.value">
+              <span class="slider-val" id="slider-val">10</span>
+            </div>
+            <button class="btn btn-primary btn-sm" style="white-space:nowrap" id="more-btn" onclick="generateMore()">
+              <span id="more-icon">🔄</span> Generate More
+            </button>
+          </div>
+          <div id="more-status" style="font-size:.79rem;color:var(--dim);display:none"></div>
+          <button class="btn btn-success btn-sm" id="dl-more-btn" style="display:none;margin-top:.4rem" onclick="downloadFile()">📊 Download Updated Suite</button>
+        </div>
+      </div>
+
+      <!-- Pipeline Status -->
+      <div class="panel">
+        <div class="panel-title"><span class="icon">⚡</span> Pipeline Status</div>
+        <div class="steps" id="steps">
+          <div class="step" id="step-1">
+            <div class="step-icon">🔍</div>
+            <div>
+              <div class="step-name">Agent 1 — QA Analyst & Business Analyst</div>
+              <div class="step-sub">Static review · Risk analysis · Gap identification</div>
+            </div>
+          </div>
+          <div class="step" id="step-2">
+            <div class="step-icon">📋</div>
+            <div>
+              <div class="step-name">Agent 2 — QA Test Case Designer</div>
+              <div class="step-sub">30-50+ test cases · Specific expected results · Excel-ready</div>
+            </div>
+          </div>
+          <div class="step" id="step-3">
+            <div class="step-icon">🔎</div>
+            <div>
+              <div class="step-name">Agent 3 — Reviewer & Solutions</div>
+              <div class="step-sub">Reviews Agents 1 & 2 · Gap solutions · Tech solutions</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rate limit banner -->
+        <div id="rate-limit-banner" style="display:none;margin-top:1rem;background:#ff475712;border:1px solid #ff475755;border-radius:10px;padding:.9rem 1rem">
+          <div style="font-size:.88rem;font-weight:800;color:#ff6b7a;margin-bottom:.3rem">⏱️ Groq Rate Limit Reached</div>
+          <div style="font-size:.8rem;color:#c8d0e0;margin-bottom:.6rem">
+            Daily token limit exhausted. Please wait <strong id="rl-wait" style="color:#f5a623">—</strong> before generating again.
+          </div>
+          <div style="font-size:.76rem;color:var(--dim);margin-bottom:.65rem">
+            💡 <strong>Tip:</strong> Switch to <strong>llama-3.1-8b-instant</strong>, <strong>Mixtral-8x7b</strong>, or <strong>Gemma2-9b</strong> in Settings — these models have much higher daily limits.
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="openDrawer()" style="font-size:.75rem">⚙️ Open Settings to change model</button>
+        </div>
+
+        <!-- Quick summary after generation -->
+        <div id="quick-summary" style="display:none;margin-top:1rem;display:none">
+          <hr class="divider">
+          <div style="font-size:.79rem;color:var(--dim);margin-bottom:.5rem">Last run summary</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap" id="quick-badges"></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="switchTab('results')">📊 View Full Results →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB: RESULTS ══════════════ -->
+<div class="tab-view" id="tv-results">
+  <div class="tab-scroll">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="res-empty">
+      <div class="empty-icon">📊</div>
+      Generate a test suite first<br>to see the full analysis and results here.
+      <br><br>
+      <button class="btn btn-primary btn-sm" onclick="switchTab('generate')">← Go to Generate</button>
+    </div>
+
+    <!-- Results content -->
+    <div id="results-content" style="display:none">
+
+      <!-- Metrics -->
+      <div class="metrics">
+        <div class="metric"><div class="metric-num" id="m-tc">—</div><div class="metric-label">Test Cases</div></div>
+        <div class="metric"><div class="metric-num" id="m-br" style="font-size:.95rem">—</div><div class="metric-label">Business Risk</div></div>
+        <div class="metric"><div class="metric-num" id="m-tr" style="font-size:.95rem">—</div><div class="metric-label">Technical Risk</div></div>
+        <div class="metric"><div class="metric-num" id="m-or" style="font-size:.95rem">—</div><div class="metric-label">Overall Risk</div></div>
+        <div class="metric"><div class="metric-num" id="m-cov" style="color:var(--accent2)">—</div><div class="metric-label">Coverage %</div></div>
+      </div>
+
+      <div id="mgr-summary" class="info-box" style="display:none"></div>
+      <div id="rev-summary" class="success-box" style="display:none"></div>
+
+      <div class="two-col" style="align-items:start">
+
+        <!-- Agent 1 analysis -->
+        <div class="panel">
+          <div class="panel-title"><span class="icon">🔎</span> Agent 1 — Analysis</div>
+          <div class="atab-bar">
+            <button class="atab-btn active" onclick="switchATab('a1',this,'t-review')">Static Review</button>
+            <button class="atab-btn" onclick="switchATab('a1',this,'t-gaps')">⚠️ Business Gaps</button>
+            <button class="atab-btn" onclick="switchATab('a1',this,'t-tech')">🔧 Technical</button>
+          </div>
+          <div class="atab-panel active" id="t-review"><div class="report-box" id="static-review"></div></div>
+          <div class="atab-panel" id="t-gaps"><ul class="point-list" id="gaps-list"></ul></div>
+          <div class="atab-panel" id="t-tech"><ul class="point-list" id="tech-list"></ul></div>
+        </div>
+
+        <!-- Agent 3 reviewer -->
+        <div class="panel">
+          <div class="panel-title"><span class="icon">🔍</span> Agent 3 — Reviewer</div>
+          <div class="atab-bar">
+            <button class="atab-btn active" onclick="switchATab('rv',this,'rv-a1fb')">A1 Feedback</button>
+            <button class="atab-btn" onclick="switchATab('rv',this,'rv-a2fb')">A2 Feedback</button>
+            <button class="atab-btn" onclick="switchATab('rv',this,'rv-gsol')">✅ Gap Solutions</button>
+            <button class="atab-btn" onclick="switchATab('rv',this,'rv-tsol')">🔧 Tech Solutions</button>
+          </div>
+          <div class="atab-panel active" id="rv-a1fb"><ul class="point-list" id="a1-feedback-list"></ul></div>
+          <div class="atab-panel" id="rv-a2fb"><ul class="point-list" id="a2-feedback-list"></ul></div>
+          <div class="atab-panel" id="rv-gsol"><ul class="point-list" id="gap-sol-list"></ul></div>
+          <div class="atab-panel" id="rv-tsol"><ul class="point-list" id="tech-sol-list"></ul></div>
+        </div>
+
+      </div>
+
+      <hr class="divider">
+
+      <!-- Export bar -->
+      <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.4rem">⬇️ Export Options</div>
+      <div class="export-bar">
+        <div class="export-row">
+          <span class="export-row-label">📊 Spreadsheet</span>
+          <div class="export-row-btns">
+            <button class="btn btn-success btn-sm" id="dl-btn" onclick="downloadFile()">📊 Download Excel</button>
+            <button class="btn btn-ghost btn-sm" id="fmt-toggle" onclick="toggleExportFmt()">Switch to CSV</button>
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border)">
+        <div class="export-row">
+          <span class="export-row-label">📄 PDF Report</span>
+          <div class="export-row-btns">
+            <button class="btn btn-pdf btn-sm" id="pdf-btn" onclick="exportPDF()">
+              <span id="pdf-icon">📄</span> Export Professional PDF
+            </button>
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border)">
+        <div class="export-row">
+          <span class="export-row-label">🔗 Jira</span>
+          <div class="export-row-btns">
+            <button class="btn btn-jira btn-sm" id="jira-btn" onclick="openJiraModal()">
+              🔗 Export to Jira
+            </button>
+            <span style="font-size:.74rem;color:var(--dim);align-self:center">Pushes each test case as a Jira issue</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB: HISTORY ══════════════ -->
+<div class="tab-view" id="tv-history">
+  <div class="tab-scroll">
+    <div class="hist-toolbar">
+      <input class="search-input" id="hist-search" placeholder="🔍  Search by label or user story…" oninput="renderHistory()">
+      <span class="hist-count" id="hist-count"></span>
+      <button class="btn btn-ghost btn-sm" id="hist-clear-btn" onclick="clearHistory()" style="display:none;color:var(--fail);border-color:#ff475740">🗑 Clear All</button>
+    </div>
+    <div class="hist-grid" id="history-list">
+      <div class="hist-empty">No runs yet. Generate a test suite to start your history.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB: CHAT ══════════════ -->
+<div class="tab-view" id="tv-chat">
+  <div class="chat-wrap">
+
+    <div class="chat-topbar">
+      <span>🤖</span>
+      <span class="chat-topbar-title">QA Assistant</span>
+      <span class="chat-topbar-sub" id="chat-status">Generate a test suite first to unlock context-aware chat.</span>
+    </div>
+
+    <!-- Compare picker -->
+    <div class="cmp-bar" id="compare-bar" style="display:none">
+      <button class="cmp-toggle" id="compare-toggle" onclick="toggleCompareDrawer()">
+        <span>🔀</span><span>Compare with history runs</span>
+        <span class="ctx-pill" id="compare-count-pill" style="display:none">0 selected</span>
+        <span class="caret">▾</span>
+      </button>
+      <div class="cmp-drawer" id="compare-drawer">
+        <div class="cmp-hint">Check past runs to include them in the assistant's comparison context.</div>
+        <div class="cmp-rows" id="compare-runs-list">
+          <div class="cmp-no-hist">No other runs in history yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chips -->
+    <div class="chips" id="chips" style="display:none">
+      <span class="chip base-chip" onclick="sendChip(this)">Highest risk areas?</span>
+      <span class="chip base-chip" onclick="sendChip(this)">What test cases are missing?</span>
+      <span class="chip base-chip" onclick="sendChip(this)">Explain the business gaps</span>
+      <span class="chip base-chip" onclick="sendChip(this)">How to improve this user story?</span>
+      <span class="chip base-chip" onclick="sendChip(this)">Suggest more acceptance criteria</span>
+      <span class="chip base-chip" onclick="sendChip(this)">Which test cases have weak expected results?</span>
+      <span class="chip cmp-chip" style="display:none" onclick="sendChip(this)">Compare coverage scores across selected runs</span>
+      <span class="chip cmp-chip" style="display:none" onclick="sendChip(this)">Which run has more comprehensive test cases?</span>
+      <span class="chip cmp-chip" style="display:none" onclick="sendChip(this)">What test cases exist in one run but not the other?</span>
+      <span class="chip cmp-chip" style="display:none" onclick="sendChip(this)">Compare risk levels across selected runs</span>
+      <span class="chip cmp-chip" style="display:none" onclick="sendChip(this)">Summarise the key differences between selected runs</span>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-empty-msg" id="chat-empty">Generate a test suite first —<br>the assistant will then have full context from all 3 agents. 👆</div>
+    </div>
+
+    <div class="chat-input-bar">
+      <input class="chat-input" id="chat-input" placeholder="Ask about risks, gaps, test cases, comparisons…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" disabled>
+      <button class="btn btn-primary btn-sm" id="send-btn" onclick="sendChat()" disabled style="white-space:nowrap">Send ➤</button>
+      <button class="btn btn-ghost btn-sm" id="clear-btn" onclick="clearChat()" style="display:none">🗑️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB: FIGMA ══════════════ -->
+<div class="tab-view" id="tv-figma">
+  <div class="tab-scroll">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1.2rem">
+      <span style="font-size:1.5rem">🎨</span>
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text)">Figma Design Integration</div>
+        <div style="font-size:.74rem;color:var(--dim)">Generate UI/UX test cases from Figma files · Review screenshots for accessibility & missing states</div>
+      </div>
+    </div>
+
+    <!-- Sub-tab switcher -->
+    <div class="atab-bar" style="margin-bottom:1.2rem">
+      <button class="atab-btn active" onclick="switchFigmaMode('design',this)">🔗 Design-to-Tests</button>
+      <button class="atab-btn" onclick="switchFigmaMode('screenshot',this)">🖼️ Screenshot Review</button>
+    </div>
+
+    <!-- ── Panel: Design-to-Tests ── -->
+    <div id="figma-panel-design">
+      <div class="two-col" style="align-items:start">
+
+        <!-- Input -->
+        <div class="panel">
+          <div class="panel-title"><span class="icon">🔗</span> Figma File Analysis</div>
+
+          <label class="drw-label" style="display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--dim)">Figma File URL</label>
+          <input type="text" id="figma-url" placeholder="https://www.figma.com/file/ABC123/My-Design" style="margin-bottom:.75rem">
+
+          <label class="drw-label" style="display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--dim)">Figma Access Token <span style="color:var(--dim);font-weight:400">(Personal access token from Figma → Account Settings)</span></label>
+          <input type="text" id="figma-token" placeholder="figd_xxxxxxxxxxxxx" style="margin-bottom:.75rem">
+
+          <label class="drw-label" style="display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--dim)">User Story <span style="color:var(--dim);font-weight:400">(optional — improves test relevance)</span></label>
+          <textarea id="figma-story" style="min-height:90px;margin-bottom:.75rem" placeholder="As a user, I want to…"></textarea>
+
+          <button class="btn btn-primary" id="figma-analyze-btn" onclick="runFigmaAnalysis()">
+            <span id="figma-analyze-icon">🎨</span>
+            <span id="figma-analyze-label">Analyze Figma & Generate Tests</span>
+          </button>
+          <div id="figma-analyze-status" style="margin-top:.6rem;font-size:.78rem;color:var(--dim);display:none"></div>
+          <div id="figma-analyze-error" style="margin-top:.6rem;font-size:.78rem;color:var(--fail);background:#ff475712;border:1px solid #ff475740;border-radius:8px;padding:.6rem .8rem;display:none"></div>
+
+          <div style="margin-top:1rem;padding:.7rem .9rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-size:.74rem;color:var(--dim)">
+            <strong style="color:var(--text)">How it works:</strong><br>
+            1. Paste a Figma file share URL<br>
+            2. Add your Personal Access Token from Figma Account Settings<br>
+            3. AI maps all frames & components → generates targeted UI/UX test cases
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="panel" id="figma-results-panel">
+          <div class="panel-title"><span class="icon">📋</span> Generated UI/UX Test Cases</div>
+          <div id="figma-empty-state" style="text-align:center;padding:2rem 1rem;color:var(--dim);font-size:.83rem">
+            <div style="font-size:2rem;margin-bottom:.5rem">🎨</div>
+            Analyze a Figma file to generate<br>UI/UX test cases here.
+          </div>
+          <div id="figma-results-meta" style="display:none;margin-bottom:.8rem"></div>
+          <div id="figma-tc-list" style="display:none;max-height:460px;overflow-y:auto"></div>
+          <div id="figma-export-bar" style="display:none;margin-top:.8rem;display:none">
+            <button class="btn btn-success btn-sm" style="width:100%;justify-content:center" onclick="downloadFigmaTCs()">📊 Download as Excel</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Panel: Screenshot Review ── -->
+    <div id="figma-panel-screenshot" style="display:none">
+      <div class="two-col" style="align-items:start">
+
+        <!-- Upload -->
+        <div class="panel">
+          <div class="panel-title"><span class="icon">🖼️</span> Upload Figma Frame</div>
+
+          <div id="figma-drop-zone"
+               style="border:2px dashed var(--border);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:var(--tr);margin-bottom:.8rem"
+               onclick="document.getElementById('figma-file-input').click()"
+               ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+               ondragleave="this.style.borderColor='var(--border)'"
+               ondrop="handleFigmaDrop(event)">
+            <div style="font-size:2rem;margin-bottom:.5rem">📂</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.25rem">Drop Figma screenshot here</div>
+            <div style="font-size:.74rem;color:var(--dim)">or click to browse — PNG, JPG supported</div>
+          </div>
+          <input type="file" id="figma-file-input" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="handleFigmaFile(this.files[0])">
+
+          <div id="figma-preview-wrap" style="display:none;margin-bottom:.8rem">
+            <img id="figma-preview-img" style="max-width:100%;border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:.74rem;color:var(--dim);margin-top:.3rem" id="figma-preview-name"></div>
+          </div>
+
+          <label class="drw-label" style="display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--dim)">User Story <span style="color:var(--dim);font-weight:400">(optional)</span></label>
+          <textarea id="figma-screenshot-story" style="min-height:70px;margin-bottom:.75rem" placeholder="As a user, I want to…"></textarea>
+
+          <button class="btn btn-primary" id="figma-review-btn" onclick="runScreenshotReview()" disabled>
+            <span id="figma-review-icon">🔍</span>
+            <span id="figma-review-label">Review Screenshot</span>
+          </button>
+          <div id="figma-review-status" style="margin-top:.6rem;font-size:.78rem;color:var(--dim);display:none"></div>
+          <div id="figma-review-error" style="margin-top:.6rem;font-size:.78rem;color:var(--fail);background:#ff475712;border:1px solid #ff475740;border-radius:8px;padding:.6rem .8rem;display:none"></div>
+        </div>
+
+        <!-- Review output -->
+        <div class="panel" id="figma-review-results">
+          <div class="panel-title"><span class="icon">📋</span> Design Review Results</div>
+          <div id="figma-review-empty" style="text-align:center;padding:2rem 1rem;color:var(--dim);font-size:.83rem">
+            <div style="font-size:2rem;margin-bottom:.5rem">🖼️</div>
+            Upload a Figma screenshot to get<br>an AI design & accessibility review.
+          </div>
+          <div id="figma-review-output" style="display:none"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ SETTINGS DRAWER ══════════════ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="settings-drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">⚙️ Settings</span>
+    <button class="drawer-close" onclick="closeDrawer()">✕ Close</button>
+  </div>
+
+  <div class="drw-section">
+    <h3>🤖 LLM Provider</h3>
+    <div class="radio-group">
+      <label class="radio-opt active" id="opt-groq" onclick="selectMode('groq')">
+        <input type="radio" name="llm" value="groq" checked>
+        <span>Groq API (Recommended)</span>
+      </label>
+      <label class="radio-opt" id="opt-ollama" onclick="selectMode('ollama')">
+        <input type="radio" name="llm" value="ollama">
+        <span>Local Ollama</span>
+      </label>
+    </div>
+    <div id="groq-note" style="margin-top:.5rem;display:flex;flex-direction:column;gap:.4rem">
+      <div>
+        <label class="drw-label">Groq Model</label>
+        <select class="drw-input" id="groq-model-select" style="cursor:pointer">
+          <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile — Best quality (100k TPD)</option>
+          <option value="llama-3.1-70b-versatile">llama-3.1-70b-versatile — High quality (100k TPD)</option>
+          <option value="llama-3.1-8b-instant">llama-3.1-8b-instant — Fast · High limits ✅</option>
+          <option value="mixtral-8x7b-32768">Mixtral-8x7b — Balanced · High limits ✅</option>
+          <option value="gemma2-9b-it">Gemma2-9b — Lightweight · High limits ✅</option>
+        </select>
+      </div>
+      <div class="drw-note">✅ marked models have much higher daily token limits — switch to one if you hit rate limits.</div>
+    </div>
+    <div id="ollama-fields" style="display:none;flex-direction:column;gap:.5rem;margin-top:.5rem">
+      <div>
+        <label class="drw-label">Ollama Base URL</label>
+        <input class="drw-input" id="ollama-url" value="http://localhost:11434/v1" placeholder="http://localhost:11434/v1">
+      </div>
+      <div>
+        <label class="drw-label">Model (Agents 1 &amp; 2)</label>
+        <input class="drw-input" id="ollama-main" value="llama3.2" placeholder="e.g. llama3.2">
+      </div>
+      <div>
+        <label class="drw-label">Model (Agent 3 Reviewer)</label>
+        <input class="drw-input" id="ollama-reviewer" value="llama3.2" placeholder="e.g. phi3">
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="testOllama()">🔍 Test Connection</button>
+      <div id="conn-status" class="conn-status"></div>
+    </div>
+  </div>
+
+  <div class="drw-section">
+    <h3>📁 Export Format</h3>
+    <div class="radio-group">
+      <label class="radio-opt active" id="opt-xlsx" onclick="selectExport('xlsx')">
+        <input type="radio" name="export" value="xlsx" checked>
+        <span>📊 Excel (.xlsx)</span>
+      </label>
+      <label class="radio-opt" id="opt-csv" onclick="selectExport('csv')">
+        <input type="radio" name="export" value="csv">
+        <span>📄 CSV (.csv)</span>
+      </label>
+    </div>
+    <div class="drw-note" style="margin-top:.5rem" id="export-note">Formatted Excel with fonts, borders and column widths.</div>
+  </div>
+
+  <div class="drw-section">
+    <h3>🔗 Jira Integration</h3>
+    <div style="display:flex;flex-direction:column;gap:.4rem">
+      <div>
+        <label class="drw-label">Jira Base URL</label>
+        <input class="drw-input" id="jira-url" placeholder="https://yourcompany.atlassian.net">
+      </div>
+      <div>
+        <label class="drw-label">Email</label>
+        <input class="drw-input" id="jira-email" placeholder="you@company.com">
+      </div>
+      <div>
+        <label class="drw-label">API Token <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);font-size:.7rem;text-decoration:none">Get token ↗</a></label>
+        <input class="drw-input" id="jira-token" type="password" placeholder="••••••••••••••••">
+      </div>
+      <div>
+        <label class="drw-label">Project Key</label>
+        <input class="drw-input" id="jira-project" placeholder="e.g. QA, PROJ, TEST">
+      </div>
+      <div>
+        <label class="drw-label">Issue Type</label>
+        <select class="drw-input" id="jira-issuetype" style="cursor:pointer">
+          <option value="Task">Task</option>
+          <option value="Story">Story</option>
+          <option value="Bug">Bug</option>
+          <option value="Test">Test</option>
+          <option value="Subtask">Subtask</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:.2rem" onclick="testJiraConn()">🔍 Test Jira Connection</button>
+      <div id="jira-conn-status" class="conn-status"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;font-size:.71rem;color:var(--mute);text-align:center;line-height:1.7;padding-top:1rem;border-top:1px solid var(--border)">
+    QA Ninjas v2.1 · Three-Agent Pipeline<br>Professional Edition
+  </div>
+</div>
+
+<!-- ══════════════ JIRA MODAL ══════════════ -->
+<div id="jira-modal-overlay" style="display:none;position:fixed;inset:0;background:#00000080;z-index:400;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:90%;max-width:520px;max-height:80vh;overflow-y:auto;padding:1.6rem;display:flex;flex-direction:column;gap:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:1rem;font-weight:800;color:var(--text)">🔗 Export to Jira</div>
+      <button onclick="closeJiraModal()" style="background:none;border:1px solid var(--border);border-radius:7px;padding:.3rem .65rem;color:var(--dim);cursor:pointer;font-size:.82rem">✕</button>
+    </div>
+
+    <!-- Pre-flight check -->
+    <div id="jira-preflight" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:.82rem">
+      <div style="font-weight:700;color:var(--text);margin-bottom:.5rem">📋 Export Summary</div>
+      <div style="color:var(--dim);line-height:1.8">
+        <div>Test cases: <strong id="jira-tc-count" style="color:var(--accent)">0</strong></div>
+        <div>Project key: <strong id="jira-proj-display" style="color:var(--accent)">—</strong></div>
+        <div>Issue type: <strong id="jira-type-display" style="color:var(--accent)">Task</strong></div>
+        <div>Label: <strong id="jira-label-display" style="color:var(--accent2)">—</strong></div>
+      </div>
+      <div class="drw-note" style="margin-top:.6rem">Make sure your Jira credentials are configured in Settings before exporting.</div>
+    </div>
+
+    <!-- Progress -->
+    <div id="jira-progress" style="display:none;flex-direction:column;gap:.6rem">
+      <div style="font-size:.82rem;color:var(--dim)" id="jira-progress-msg">Connecting to Jira…</div>
+      <div style="background:var(--mute);border-radius:4px;height:6px;overflow:hidden">
+        <div id="jira-progress-bar" style="height:100%;background:linear-gradient(90deg,#0052cc,#6c63ff);border-radius:4px;transition:width .4s ease;width:0%"></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--dim)" id="jira-progress-sub"></div>
+    </div>
+
+    <!-- Result -->
+    <div id="jira-result" style="display:none;flex-direction:column;gap:.6rem"></div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:.6rem" id="jira-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeJiraModal()" style="flex:1;justify-content:center">Cancel</button>
+      <button class="btn btn-jira" id="jira-export-btn" onclick="runJiraExport()" style="flex:2">
+        <span id="jira-export-icon">🔗</span>
+        <span id="jira-export-label">Export All Test Cases to Jira</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ AUTH OVERLAY ══════════════ -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="auth-logo-icon">🧪</span>
+      <h2>QA Ninjas</h2>
+      <p>Agentic AI · Three-Agent Pipeline · CrewAI + Groq</p>
+    </div>
+    <div class="auth-title" id="auth-card-title">Sign in to your account</div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-field">
+      <label for="auth-username">Username</label>
+      <input id="auth-username" type="text" placeholder="your username" autocomplete="username"
+             onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+    </div>
+    <div class="auth-field">
+      <label for="auth-password">Password</label>
+      <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')submitAuth()">
+    </div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="submitAuth()">
+      <span id="auth-btn-icon">🔐</span>
+      <span id="auth-btn-label">Sign In</span>
+    </button>
+    <div class="auth-switch" id="auth-switch-text">
+      Don't have an account? <span onclick="toggleAuthMode()">Create one</span>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Auth ────────────────────────────────────────────────────────
+let authToken = localStorage.getItem('qa_token') || null;
+let authUser  = null;
+let authMode  = 'login'; // 'login' | 'register'
+
+function authFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  if (authToken) opts.headers['Authorization'] = 'Bearer ' + authToken;
+  return fetch(url, opts).then(resp => {
+    if (resp.status === 401) { showLogin(); throw new Error('Session expired. Please sign in again.'); }
+    return resp;
+  });
+}
+
+function showLogin() {
+  authToken = null; authUser = null;
+  localStorage.removeItem('qa_token');
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('user-pill').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-username').value = '';
+  document.getElementById('auth-password').value = '';
+}
+
+function showApp(user) {
+  authUser = user;
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('user-name').textContent = user.username;
+  document.getElementById('user-pill').style.display = 'flex';
+  document.getElementById('logout-btn').style.display = 'block';
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'register' : 'login';
+  const isReg = authMode === 'register';
+  document.getElementById('auth-card-title').textContent = isReg ? 'Create an account' : 'Sign in to your account';
+  document.getElementById('auth-btn-label').textContent  = isReg ? 'Create Account' : 'Sign In';
+  document.getElementById('auth-switch-text').innerHTML  = isReg
+    ? 'Already have an account? <span onclick="toggleAuthMode()">Sign in</span>'
+    : 'Don\'t have an account? <span onclick="toggleAuthMode()">Create one</span>';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function submitAuth() {
+  const username = document.getElementById('auth-username').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  const btn   = document.getElementById('auth-submit-btn');
+  const icon  = document.getElementById('auth-btn-icon');
+  if (!username || !password) { errEl.textContent = 'Please enter username and password.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; icon.innerHTML = '<span class="spinner" style="border-color:#ffffff40;border-top-color:#fff"></span>';
+  errEl.style.display = 'none';
+  const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+  try {
+    const resp = await fetch(endpoint, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password}),
+    });
+    const data = await resp.json();
+    if (!resp.ok) { errEl.textContent = data.detail || 'Authentication failed.'; errEl.style.display = 'block'; return; }
+    authToken = data.token;
+    localStorage.setItem('qa_token', authToken);
+    showApp({user_id: data.user_id, username: data.username});
+    fetchHistory();
+  } catch(e) {
+    errEl.textContent = 'Network error: ' + e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    icon.textContent = '🔐';
+  }
+}
+
+async function doLogout() {
+  try { await authFetch('/api/auth/logout', {method: 'POST'}); } catch {}
+  histCache = [];
+  renderHistory(); updateHistBadge();
+  showLogin();
+  showToast('Signed out.', 'ok');
+}
+
+async function initAuth() {
+  if (!authToken) { showLogin(); return; }
+  try {
+    const resp = await fetch('/api/auth/me', {headers: {'Authorization': 'Bearer ' + authToken}});
+    if (!resp.ok) { showLogin(); return; }
+    const user = await resp.json();
+    showApp(user);
+    fetchHistory();
+  } catch { showLogin(); }
+}
+
+// ── State ──────────────────────────────────────────────────────
+const state = {
+  llmMode: 'groq',
+  exportFmt: 'xlsx',
+  done: false,
+  tcList: [],
+  reportRaw: '',
+  reportData: {},
+  reviewData: {},
+  chatHistory: [],
+  userStory: '',
+  activeHistId: null,
+  compareIds: [],
+};
+
+// ── PDF Export ─────────────────────────────────────────────────
+async function exportPDF() {
+  if (!state.done) { showToast('Generate a test suite first.', 'err'); return; }
+  const btn  = document.getElementById('pdf-btn');
+  const icon = document.getElementById('pdf-icon');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner"></span>';
+  try {
+    const label = histCache.find(e => e.id === state.activeHistId)?.label || '';
+    const resp = await fetch('/api/export/pdf', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        user_story:  state.userStory,
+        report_data: state.reportData,
+        review_data: state.reviewData,
+        tc_list:     state.tcList,
+        label:       label,
+        run_date:    new Date().toLocaleString(),
+      }),
+    });
+    if (!resp.ok) throw new Error('Server error ' + resp.status);
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `qa_report_${(label || 'report').replace(/\s+/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('PDF downloaded successfully!', 'ok');
+  } catch(e) {
+    showToast('PDF export failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; icon.textContent = '📄';
+  }
+}
+
+async function exportPDFFromHistory(id) {
+  const entry = histCache.find(e => e.id === id);
+  if (!entry) { showToast('Run not found in history.', 'err'); return; }
+  const btn = document.getElementById(`hist-pdf-${id}`);
+  if (btn) btn.disabled = true;
+  try {
+    const resp = await fetch('/api/export/pdf/history', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ run_id: id }),
+    });
+    if (!resp.ok) throw new Error('Server error ' + resp.status);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qa_report_${(entry.label || 'history').replace(/\s+/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('History PDF downloaded successfully!', 'ok');
+  } catch (e) {
+    showToast('PDF export failed: ' + e.message, 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Jira helpers ───────────────────────────────────────────────
+function _jiraConfig() {
+  return {
+    jira_url:   document.getElementById('jira-url').value.trim(),
+    email:      document.getElementById('jira-email').value.trim(),
+    api_token:  document.getElementById('jira-token').value.trim(),
+    project_key:document.getElementById('jira-project').value.trim().toUpperCase(),
+    issue_type: document.getElementById('jira-issuetype').value,
+  };
+}
+
+async function testJiraConn() {
+  const cfg = _jiraConfig();
+  const statusEl = document.getElementById('jira-conn-status');
+  if (!cfg.jira_url || !cfg.email || !cfg.api_token) {
+    statusEl.className = 'conn-status conn-err';
+    statusEl.style.display = 'block';
+    statusEl.textContent = '❌ Fill in URL, email and API token first.'; return;
+  }
+  statusEl.className = 'conn-status'; statusEl.textContent = 'Testing…'; statusEl.style.display = 'block';
+  try {
+    const resp = await fetch('/api/export/jira/test', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(cfg),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      statusEl.className = 'conn-status conn-ok';
+      statusEl.textContent = `✅ Connected as ${data.display_name}${data.projects.length ? ' · Projects: ' + data.projects.slice(0,5).join(', ') : ''}`;
+    } else {
+      statusEl.className = 'conn-status conn-err';
+      statusEl.textContent = '❌ ' + (data.error || 'Connection failed');
+    }
+  } catch(e) {
+    statusEl.className = 'conn-status conn-err';
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+function openJiraModal() {
+  if (!state.done) { showToast('Generate a test suite first.', 'err'); return; }
+  const label = histCache.find(e => e.id === state.activeHistId)?.label || 'QA-Ninjas';
+  document.getElementById('jira-tc-count').textContent   = state.tcList.length;
+  document.getElementById('jira-proj-display').textContent = document.getElementById('jira-project').value.trim().toUpperCase() || '(set in Settings)';
+  document.getElementById('jira-type-display').textContent = document.getElementById('jira-issuetype').value;
+  document.getElementById('jira-label-display').textContent = label || 'QA-Ninjas';
+  document.getElementById('jira-preflight').style.display = 'block';
+  document.getElementById('jira-progress').style.display  = 'none';
+  document.getElementById('jira-result').style.display    = 'none';
+  document.getElementById('jira-actions').style.display   = 'flex';
+  document.getElementById('jira-export-btn').disabled     = false;
+  document.getElementById('jira-export-icon').textContent = '🔗';
+  document.getElementById('jira-export-label').textContent = 'Export All Test Cases to Jira';
+  const ov = document.getElementById('jira-modal-overlay');
+  ov.style.display = 'flex';
+}
+
+function closeJiraModal() {
+  document.getElementById('jira-modal-overlay').style.display = 'none';
+}
+
+async function runJiraExport() {
+  const cfg = _jiraConfig();
+  if (!cfg.jira_url || !cfg.email || !cfg.api_token || !cfg.project_key) {
+    showToast('Configure Jira credentials in Settings first.', 'err'); return;
+  }
+  const btn  = document.getElementById('jira-export-btn');
+  const icon = document.getElementById('jira-export-icon');
+  const lbl  = document.getElementById('jira-export-label');
+  btn.disabled = true; icon.innerHTML = '<span class="spinner"></span>'; lbl.textContent = 'Exporting…';
+
+  document.getElementById('jira-preflight').style.display = 'none';
+  document.getElementById('jira-actions').style.display   = 'none';
+  const prog = document.getElementById('jira-progress');
+  prog.style.display = 'flex';
+  document.getElementById('jira-progress-msg').textContent = 'Connecting to Jira…';
+  document.getElementById('jira-progress-bar').style.width = '10%';
+  document.getElementById('jira-progress-sub').textContent = `0 / ${state.tcList.length} issues created`;
+
+  // Animate progress
+  let fakeProgress = 10;
+  const ticker = setInterval(() => {
+    fakeProgress = Math.min(fakeProgress + 3, 85);
+    document.getElementById('jira-progress-bar').style.width = fakeProgress + '%';
+    document.getElementById('jira-progress-msg').textContent = 'Creating issues in Jira…';
+  }, 600);
+
+  const label = histCache.find(e => e.id === state.activeHistId)?.label || 'QA-Ninjas';
+  try {
+    const resp = await fetch('/api/export/jira', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        ...cfg, label,
+        user_story: state.userStory,
+        tc_list:    state.tcList,
+      }),
+    });
+    const data = await resp.json();
+    clearInterval(ticker);
+    document.getElementById('jira-progress-bar').style.width = '100%';
+
+    const resultEl = document.getElementById('jira-result');
+    prog.style.display = 'none';
+    resultEl.style.display = 'flex';
+
+    if (data.success) {
+      const linksHtml = (data.issues || []).slice(0, 8).map(i =>
+        `<a href="${i.url}" target="_blank" style="color:var(--accent);font-size:.77rem;display:block;padding:.2rem 0;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔗 ${i.key} — ${i.summary.slice(0,55)}</a>`
+      ).join('');
+      resultEl.innerHTML = `
+        <div style="background:#00d4aa12;border:1px solid #00d4aa40;border-radius:10px;padding:1rem">
+          <div style="font-size:.9rem;font-weight:800;color:var(--accent2);margin-bottom:.4rem">✅ Export Complete!</div>
+          <div style="font-size:.82rem;color:var(--dim);margin-bottom:.7rem">
+            <strong style="color:var(--accent2)">${data.created}</strong> issues created · 
+            ${data.failed > 0 ? `<strong style="color:var(--fail)">${data.failed} failed</strong>` : '0 failed'}
+          </div>
+          <div style="max-height:180px;overflow-y:auto">${linksHtml}${data.issues.length > 8 ? `<div style="color:var(--dim);font-size:.75rem;margin-top:.3rem">… and ${data.issues.length - 8} more</div>` : ''}</div>
+          ${data.project_url ? `<a href="${data.project_url}" target="_blank" class="btn btn-jira btn-sm" style="margin-top:.75rem;text-decoration:none;justify-content:center">Open Jira Project ↗</a>` : ''}
+        </div>`;
+      showToast(`${data.created} Jira issues created!`, 'ok');
+    } else {
+      resultEl.innerHTML = `<div style="background:#ff475712;border:1px solid #ff475740;border-radius:10px;padding:1rem;color:var(--fail);font-size:.83rem">❌ Export failed: ${data.error || 'Unknown error'}</div>`;
+    }
+    document.getElementById('jira-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeJiraModal()" style="width:100%;justify-content:center">Close</button>`;
+    document.getElementById('jira-actions').style.display = 'flex';
+  } catch(e) {
+    clearInterval(ticker);
+    prog.style.display = 'none';
+    const resultEl = document.getElementById('jira-result');
+    resultEl.style.display = 'flex';
+    resultEl.innerHTML = `<div style="background:#ff475712;border:1px solid #ff475740;border-radius:10px;padding:1rem;color:var(--fail);font-size:.83rem">❌ Error: ${e.message}</div>`;
+    document.getElementById('jira-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeJiraModal()" style="width:100%;justify-content:center">Close</button>`;
+    document.getElementById('jira-actions').style.display = 'flex';
+  }
+}
+
+async function exportJiraFromHistory(id) {
+  const entry = histCache.find(e => e.id === id);
+  if (!entry) { showToast('Run not found in history.', 'err'); return; }
+  const cfg = _jiraConfig();
+  if (!cfg.jira_url || !cfg.email || !cfg.api_token || !cfg.project_key) {
+    showToast('Configure Jira credentials in Settings first.', 'err'); return;
+  }
+  const btn = document.getElementById(`hist-jira-${id}`);
+  if (btn) btn.disabled = true;
+  try {
+    const resp = await fetch('/api/export/jira/history', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ ...cfg, run_id: id }),
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error || 'Export failed');
+    showToast(`History exported to Jira: ${data.created} issues`, 'ok');
+  } catch (e) {
+    showToast('Jira export failed: ' + e.message, 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Tab Navigation ─────────────────────────────────────────────
+function switchTab(name) {
+  ['generate','results','history','chat','figma'].forEach(t => {
+    document.getElementById(`tv-${t}`).classList.toggle('active', t === name);
+    document.getElementById(`tb-${t}`).classList.toggle('active', t === name);
+  });
+  if (name === 'history') renderHistory();
+  if (name === 'chat') renderCompareSelector();
+}
+
+// ── Settings Drawer ────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('settings-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('settings-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+function selectMode(mode) {
+  state.llmMode = mode;
+  document.getElementById('opt-groq').classList.toggle('active', mode==='groq');
+  document.getElementById('opt-ollama').classList.toggle('active', mode==='ollama');
+  document.getElementById('groq-note').style.display = mode==='groq' ? 'block' : 'none';
+  document.getElementById('ollama-fields').style.display = mode==='ollama' ? 'flex' : 'none';
+}
+function selectExport(fmt) {
+  state.exportFmt = fmt;
+  document.getElementById('opt-xlsx').classList.toggle('active', fmt==='xlsx');
+  document.getElementById('opt-csv').classList.toggle('active', fmt==='csv');
+  document.getElementById('export-note').textContent = fmt==='xlsx'
+    ? 'Formatted Excel with fonts, borders and column widths.'
+    : 'UTF-8 CSV compatible with Excel, Google Sheets and Jira.';
+  updateDownloadBtns();
+}
+function toggleExportFmt() { selectExport(state.exportFmt==='xlsx' ? 'csv' : 'xlsx'); }
+function updateDownloadBtns() {
+  const isX = state.exportFmt === 'xlsx';
+  const dl = document.getElementById('dl-btn');
+  const dlM = document.getElementById('dl-more-btn');
+  const ft = document.getElementById('fmt-toggle');
+  if (dl) dl.textContent = isX ? '📊 Download Excel' : '📄 Download CSV';
+  if (dlM) dlM.textContent = isX ? '📊 Download Updated Suite (Excel)' : '📄 Download Updated Suite (CSV)';
+  if (ft) ft.textContent = isX ? 'Switch to CSV' : 'Switch to Excel';
+}
+async function testOllama() {
+  const url = document.getElementById('ollama-url').value.trim();
+  const statusEl = document.getElementById('conn-status');
+  statusEl.className = 'conn-status'; statusEl.textContent = 'Testing…'; statusEl.style.display = 'block';
+  try {
+    const base = url.replace('/v1','').replace(/\/$/, '');
+    const r = await fetch(`${base}/api/tags`, {signal: AbortSignal.timeout(5000)});
+    const data = await r.json();
+    const models = (data.models||[]).map(m=>m.name).slice(0,4);
+    statusEl.className = 'conn-status conn-ok';
+    statusEl.textContent = models.length ? `✅ Connected! Models: ${models.join(', ')}` : '✅ Connected (no models pulled yet)';
+  } catch(e) {
+    statusEl.className = 'conn-status conn-err';
+    statusEl.textContent = `❌ Cannot reach Ollama: ${e.message}`;
+  }
+}
+
+// ── Pipeline step helpers ──────────────────────────────────────
+function setStep(n, status) {
+  const el = document.getElementById(`step-${n}`);
+  el.classList.remove('active','done');
+  if (status === 'active') {
+    el.classList.add('active');
+    el.querySelector('.step-icon').textContent = '⏳';
+  } else if (status === 'done') {
+    el.classList.add('done');
+    el.querySelector('.step-icon').textContent = '✅';
+  } else {
+    el.querySelector('.step-icon').textContent = ['','🔍','📋','🔎'][n];
+  }
+}
+function resetSteps() { [1,2,3].forEach(n => setStep(n,'idle')); }
+
+// ── Analysis tabs ──────────────────────────────────────────────
+const aTabGroups = {};
+function switchATab(group, btn, panelId) {
+  const bar = btn.closest('.atab-bar');
+  const container = bar.parentElement;
+  bar.querySelectorAll('.atab-btn').forEach(b => b.classList.remove('active'));
+  container.querySelectorAll('.atab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ── Point list renderer ────────────────────────────────────────
+function renderPoints(container, items, cls) {
+  if (!Array.isArray(items) || !items.length) {
+    container.innerHTML = '<li style="color:var(--dim);font-size:.79rem;padding:.5rem">No items identified.</li>';
+    return;
+  }
+  container.innerHTML = items.map((item, i) =>
+    `<li class="point-item"><span class="point-num ${cls}">${i+1}</span><span>${item}</span></li>`
+  ).join('');
+}
+
+// ── Badge ──────────────────────────────────────────────────────
+function badge(level) {
+  const cls = {high:'badge-high',medium:'badge-medium',low:'badge-low'}[String(level).toLowerCase()] || 'badge-medium';
+  return `<span class="badge ${cls}">${level}</span>`;
+}
+
+// ── History (server-side SQLite) ───────────────────────────────
+let histCache = [];
+
+async function fetchHistory() {
+  try {
+    const resp = await authFetch('/api/history');
+    const data = await resp.json();
+    histCache = (data.runs || []).map(r => ({
+      id: r.id, ts: r.ts, label: r.label || '',
+      preview: r.preview, tcCount: r.tc_count,
+      coverage: r.coverage, overallRisk: r.overall_risk,
+      userStory: r.user_story, tcList: r.tc_list,
+      reportRaw: r.report_raw, reportData: r.report_data,
+      reviewData: r.review_data,
+    }));
+  } catch { histCache = []; }
+  renderHistory();
+  renderCompareSelector();
+  updateHistBadge();
+}
+
+async function saveToHistory() {
+  const rv = state.reviewData || {};
+  const rd = state.reportData || {};
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    ts: Date.now(), label: '',
+    preview: state.userStory.slice(0, 180),
+    tc_count: state.tcList.length,
+    coverage: rv.coverage_score != null ? rv.coverage_score : null,
+    overall_risk: rd.overall_risk_level || null,
+    user_story: state.userStory,
+    tc_list: state.tcList,
+    report_raw: state.reportRaw,
+    report_data: rd,
+    review_data: rv,
+  };
+  try {
+    await authFetch('/api/history', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry),
+    });
+    state.activeHistId = entry.id;
+  } catch {}
+  await fetchHistory();
+}
+
+async function updateLabel(id, label) {
+  const entry = histCache.find(e => e.id === id);
+  if (entry) entry.label = label;
+  try {
+    await authFetch(`/api/history/${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({label}),
+    });
+  } catch {}
+}
+
+function loadHistoryRun(id) {
+  const entry = histCache.find(e => e.id === id);
+  if (!entry) return;
+  state.userStory   = entry.userStory;
+  state.tcList      = entry.tcList;
+  state.reportRaw   = entry.reportRaw;
+  state.reportData  = entry.reportData;
+  state.reviewData  = entry.reviewData;
+  state.done        = true;
+  state.chatHistory = [];
+  state.activeHistId = id;
+  state.compareIds  = [];
+  document.getElementById('story-input').value = entry.userStory;
+  [1,2,3].forEach(n => setStep(n, 'done'));
+  renderResults(false);
+  renderHistory();
+  showToast(`Loaded run from ${fmtDate(entry.ts)}`, 'ok');
+  switchTab('results');
+}
+
+async function clearHistory() {
+  if (!confirm('Clear all history? This cannot be undone.')) return;
+  try {
+    await authFetch('/api/history', {method: 'DELETE'});
+    state.activeHistId = null; histCache = [];
+    renderHistory(); updateHistBadge();
+    showToast('History cleared.', 'ok');
+  } catch { showToast('Could not clear history.', 'err'); }
+}
+
+async function deleteHistEntry(id) {
+  try {
+    await authFetch(`/api/history/${id}`, {method: 'DELETE'});
+    if (state.activeHistId === id) state.activeHistId = null;
+    histCache = histCache.filter(e => e.id !== id);
+    renderHistory(); updateHistBadge();
+    showToast('Run removed.', 'ok');
+  } catch { showToast('Could not delete run.', 'err'); }
+}
+
+function downloadHistEntry(id) {
+  const entry = histCache.find(e => e.id === id);
+  if (entry) downloadFile(entry.tcList);
+}
+
+function fmtDate(ts) {
+  const d = new Date(ts), today = new Date();
+  const isToday = d.toDateString() === today.toDateString();
+  const time = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  return isToday ? `Today ${time}` : d.toLocaleDateString([], {month:'short', day:'numeric'}) + ' ' + time;
+}
+
+function riskColor(r) {
+  const m = {high:'badge-high', medium:'badge-medium', low:'badge-low'};
+  return m[(r||'').toLowerCase()] || 'badge-medium';
+}
+
+function updateHistBadge() {
+  const n = histCache.length;
+  const badge = document.getElementById('tb-hist-badge');
+  badge.textContent = n;
+  badge.style.display = n ? 'inline' : 'none';
+}
+
+function renderHistory() {
+  const q = (document.getElementById('hist-search')?.value || '').toLowerCase().trim();
+  let arr = histCache;
+  if (q) {
+    arr = arr.filter(e =>
+      (e.label||'').toLowerCase().includes(q) ||
+      (e.preview||'').toLowerCase().includes(q) ||
+      (e.userStory||'').toLowerCase().includes(q)
+    );
+  }
+
+  const list = document.getElementById('history-list');
+  const clearBtn = document.getElementById('hist-clear-btn');
+  const countEl = document.getElementById('hist-count');
+
+  if (clearBtn) clearBtn.style.display = histCache.length ? 'inline-flex' : 'none';
+  if (countEl) countEl.textContent = histCache.length ? `${arr.length} of ${histCache.length} runs` : '';
+
+  if (!histCache.length) {
+    list.innerHTML = '<div class="hist-empty">No runs yet.<br>Generate a test suite to start your history.</div>';
+    return;
+  }
+  if (!arr.length) {
+    list.innerHTML = '<div class="hist-empty">No runs match your search.</div>';
+    return;
+  }
+
+  list.innerHTML = arr.map((e, i) => {
+    const isActive = e.id === state.activeHistId;
+    const riskBadge = e.overallRisk
+      ? `<span class="hbadge ${riskColor(e.overallRisk)}">${e.overallRisk} risk</span>` : '';
+    const covBadge = e.coverage != null
+      ? `<span class="hbadge hb-cov">${e.coverage}% cov</span>` : '';
+    const num = histCache.length - histCache.findIndex(x => x.id === e.id);
+    return `<div class="hcard${isActive ? ' active-hist' : ''}">
+      <div class="hcard-top">
+        <span class="run-num">#${num}</span>
+        <input class="label-input" placeholder="Add a label…" value="${escHtml(e.label||'')}"
+          onblur="updateLabel('${e.id}', this.value)"
+          onkeydown="if(event.key==='Enter'){this.blur()}"
+          onclick="event.stopPropagation()">
+        <span class="hcard-time">${fmtDate(e.ts)}</span>
+      </div>
+      <div class="hcard-preview">${escHtml(e.preview)}</div>
+      <div class="hcard-meta">
+        <span class="hbadge hb-tc">${e.tcCount} cases</span>
+        ${covBadge}${riskBadge}
+      </div>
+      <div class="hcard-actions">
+        <button class="hcard-btn" onclick="loadHistoryRun('${e.id}')">👁 View Results</button>
+        <button class="hcard-btn dl" onclick="downloadHistEntry('${e.id}')">⬇ Download</button>
+        <button class="hcard-btn dl" id="hist-pdf-${e.id}" onclick="exportPDFFromHistory('${e.id}')">📄 PDF</button>
+        <button class="hcard-btn dl" id="hist-jira-${e.id}" onclick="exportJiraFromHistory('${e.id}')">🔗 Jira</button>
+        <button class="hcard-btn del" onclick="deleteHistEntry('${e.id}')">✕ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Compare Picker ─────────────────────────────────────────────
+function toggleCompareDrawer() {
+  document.getElementById('compare-toggle').classList.toggle('open');
+  document.getElementById('compare-drawer').classList.toggle('open');
+}
+function toggleCompareRun(id, checkbox) {
+  if (checkbox.checked) { if (!state.compareIds.includes(id)) state.compareIds.push(id); }
+  else { state.compareIds = state.compareIds.filter(x => x !== id); }
+  updateComparePill();
+  updateCompareChips();
+}
+function updateComparePill() {
+  const pill = document.getElementById('compare-count-pill');
+  const n = state.compareIds.length;
+  pill.style.display = n ? 'inline' : 'none';
+  if (n) pill.textContent = `${n} selected`;
+  const sub = document.getElementById('chat-status');
+  if (n > 0) sub.textContent = `Context-aware · Comparing ${n+1} run${n>1?'s':''} · Full cross-run analysis`;
+  else if (state.done) sub.textContent = 'Context-aware · All 3 agents · Full analysis & solutions';
+}
+function updateCompareChips() {
+  const has = state.compareIds.length > 0;
+  document.querySelectorAll('.cmp-chip').forEach(c => c.style.display = has ? 'inline-flex' : 'none');
+}
+function renderCompareSelector() {
+  const bar = document.getElementById('compare-bar');
+  if (!state.done) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  const others = histCache.filter(e => e.id !== state.activeHistId);
+  const list = document.getElementById('compare-runs-list');
+  if (!others.length) {
+    list.innerHTML = '<div class="cmp-no-hist">No other runs in history yet.</div>';
+    return;
+  }
+  list.innerHTML = others.map((e, i) => {
+    const checked = state.compareIds.includes(e.id);
+    const covTxt = e.coverage != null ? ` · ${e.coverage}% cov` : '';
+    const riskTxt = e.overallRisk ? ` · ${e.overallRisk} risk` : '';
+    const labelTxt = e.label ? `"${e.label}" · ` : '';
+    const preview = e.preview.slice(0, 55).replace(/\n/g, ' ');
+    return `<label class="cmp-row${checked?' selected':''}" onclick="this.classList.toggle('selected')">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleCompareRun('${e.id}',this)">
+      <div style="flex:1;min-width:0">
+        <div class="cmp-meta-title">${labelTxt}#${others.length-i} · ${fmtDate(e.ts)} · ${e.tcCount} cases${covTxt}${riskTxt}</div>
+        <div class="cmp-meta-sub">${escHtml(preview)}…</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+// ── Generate ───────────────────────────────────────────────────
+async function generate() {
+  const story = document.getElementById('story-input').value.trim();
+  if (!story) { showToast('Please enter a user story.', 'err'); return; }
+
+  state.userStory = story; state.done = false; state.tcList = [];
+  state.chatHistory = []; state.activeHistId = null; state.compareIds = [];
+
+  const btn = document.getElementById('generate-btn');
+  const icon = document.getElementById('gen-icon');
+  const lbl = document.getElementById('gen-label');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner"></span>';
+  lbl.textContent = 'Running pipeline…';
+
+  resetSteps();
+  document.getElementById('results-content').style.display = 'none';
+  document.getElementById('res-empty').style.display = 'block';
+  document.getElementById('more-panel').style.display = 'none';
+  document.getElementById('quick-summary').style.display = 'none';
+
+  document.getElementById('rate-limit-banner').style.display = 'none';
+
+  const body = {
+    user_stories: story,
+    ollama_url: state.llmMode==='ollama' ? document.getElementById('ollama-url').value.trim() : '',
+    ollama_model_main: state.llmMode==='ollama' ? document.getElementById('ollama-main').value.trim() : '',
+    ollama_model_reviewer: state.llmMode==='ollama' ? document.getElementById('ollama-reviewer').value.trim() : '',
+    groq_model: state.llmMode==='groq' ? document.getElementById('groq-model-select').value : '',
+  };
+
+  try {
+    const resp = await fetch('/api/generate', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try { handleSSE(JSON.parse(line.slice(6))); } catch {}
+      }
+    }
+  } catch(e) { showToast('Pipeline error: ' + e.message, 'err'); }
+  finally {
+    btn.disabled = false;
+    icon.textContent = '🚀';
+    lbl.textContent = 'Generate Test Suite';
+  }
+}
+
+function handleSSE(evt) {
+  if (evt.step==='agent1' && evt.status==='running') setStep(1,'active');
+  if (evt.step==='agent1' && evt.status==='done') {
+    setStep(1,'done'); state.reportData = evt.report_data||{}; state.reportRaw = evt.report_raw||'';
+  }
+  if (evt.step==='agent2' && evt.status==='running') setStep(2,'active');
+  if (evt.step==='agent2' && evt.status==='done') { setStep(2,'done'); state.tcList = evt.tc_list||[]; }
+  if (evt.step==='agent3' && evt.status==='running') setStep(3,'active');
+  if (evt.step==='agent3' && evt.status==='done') { setStep(3,'done'); state.reviewData = evt.review_data||{}; }
+  if (evt.step==='error') showToast('Error: ' + evt.msg, 'err');
+  if (evt.step==='rate_limit') {
+    const banner = document.getElementById('rate-limit-banner');
+    document.getElementById('rl-wait').textContent = evt.wait || 'a few minutes';
+    banner.style.display = 'block';
+    resetSteps();
+    showToast(`⏱️ Rate limit hit. Wait ${evt.wait} or switch model.`, 'err');
+  }
+  if (evt.step==='complete') {
+    state.done = true;
+    state.reportData = evt.report_data || state.reportData;
+    state.reviewData = evt.review_data || state.reviewData;
+    state.tcList     = evt.tc_list     || state.tcList;
+    renderResults(true);
+    showToast(`✅ Generated ${state.tcList.length} test cases!`, 'ok');
+  }
+}
+
+function renderResults(isFresh) {
+  const rd = state.reportData;
+  const rv = state.reviewData;
+
+  // Metrics
+  document.getElementById('m-tc').textContent  = state.tcList.length;
+  document.getElementById('m-br').innerHTML    = badge(rd.business_risk_level || '—');
+  document.getElementById('m-tr').innerHTML    = badge(rd.technical_risk_level || '—');
+  document.getElementById('m-or').innerHTML    = badge(rd.overall_risk_level || '—');
+  document.getElementById('m-cov').textContent = rv.coverage_score != null ? rv.coverage_score + '%' : '—';
+
+  const mgrEl = document.getElementById('mgr-summary');
+  if (rd.manager_summary) { mgrEl.textContent = '📌 ' + rd.manager_summary; mgrEl.style.display='block'; }
+
+  const revEl = document.getElementById('rev-summary');
+  if (rv.reviewer_summary) { revEl.textContent = '🔎 ' + rv.reviewer_summary; revEl.style.display='block'; }
+
+  document.getElementById('static-review').textContent = rd.static_review_analysis || 'No static review available.';
+  renderPoints(document.getElementById('gaps-list'), rd.identified_business_gaps||[], 'pn-gap');
+  renderPoints(document.getElementById('tech-list'), rd.technical_concerns||[], 'pn-tech');
+  renderPoints(document.getElementById('a1-feedback-list'), rv.agent1_feedback||[], 'pn-rev');
+  renderPoints(document.getElementById('a2-feedback-list'), rv.agent2_feedback||[], 'pn-rev');
+  renderPoints(document.getElementById('gap-sol-list'), rv.business_gap_solutions||[], 'pn-sol');
+  renderPoints(document.getElementById('tech-sol-list'), rv.technical_concern_solutions||[], 'pn-sol');
+
+  updateDownloadBtns();
+
+  document.getElementById('res-empty').style.display = 'none';
+  document.getElementById('results-content').style.display = 'block';
+  document.getElementById('more-panel').style.display = 'block';
+
+  // Header pill
+  document.getElementById('hdr-tc').textContent = state.tcList.length;
+  document.getElementById('tc-pill').style.display = 'flex';
+
+  // Tab badge
+  const rb = document.getElementById('tb-results-badge');
+  rb.textContent = state.tcList.length; rb.style.display = 'inline';
+
+  // Quick summary on Generate tab
+  const qs = document.getElementById('quick-summary');
+  const qb = document.getElementById('quick-badges');
+  qb.innerHTML = [
+    `<span class="badge" style="background:#6c63ff18;color:var(--accent);border-color:#6c63ff40">${state.tcList.length} cases</span>`,
+    rv.coverage_score != null ? `<span class="badge badge-low">${rv.coverage_score}% coverage</span>` : '',
+    rd.overall_risk_level ? `<span class="badge ${riskColor(rd.overall_risk_level)}">${rd.overall_risk_level} risk</span>` : '',
+  ].filter(Boolean).join('');
+  qs.style.display = 'block';
+
+  // Unlock chat
+  document.getElementById('chat-input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('chips').style.display = 'flex';
+  document.getElementById('chat-status').textContent = 'Context-aware · All 3 agents · Full analysis & solutions';
+  document.getElementById('chat-empty').innerHTML = 'Ask me anything about your user story, test cases, risks, gaps, or reviewer findings. 👆';
+
+  renderCompareSelector();
+
+  // Save to history
+  if (isFresh || !state.activeHistId || !histCache.find(e => e.id === state.activeHistId)) {
+    if (isFresh) saveToHistory();
+  } else {
+    renderHistory();
+  }
+}
+
+// ── Download ───────────────────────────────────────────────────
+async function downloadFile(list) {
+  const cases = list || state.tcList;
+  if (!cases.length) { showToast('No test cases to download.', 'err'); return; }
+  const isXlsx = state.exportFmt === 'xlsx';
+  const endpoint = isXlsx ? '/api/download/excel' : '/api/download/csv';
+  const ext = isXlsx ? 'xlsx' : 'csv';
+  const resp = await fetch(endpoint, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({test_cases: cases}),
+  });
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `qa_test_suite.${ext}`; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Downloaded ${cases.length} test cases as .${ext}`, 'ok');
+}
+
+// ── Generate More ──────────────────────────────────────────────
+async function generateMore() {
+  if (!state.done) return;
+  const count = parseInt(document.getElementById('more-slider').value);
+  const btn   = document.getElementById('more-btn');
+  const icon  = document.getElementById('more-icon');
+  const statusEl = document.getElementById('more-status');
+  btn.disabled = true; icon.innerHTML = '<span class="spinner"></span>';
+  statusEl.textContent = `Generating ${count} additional test cases…`; statusEl.style.display = 'block';
+  try {
+    const resp = await fetch('/api/generate-more', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        user_story: state.userStory, report_raw: state.reportRaw,
+        existing_cases: state.tcList, count,
+        ollama_url: state.llmMode==='ollama' ? document.getElementById('ollama-url').value.trim() : '',
+        ollama_model_main: state.llmMode==='ollama' ? document.getElementById('ollama-main').value.trim() : '',
+        groq_model: state.llmMode==='groq' ? document.getElementById('groq-model-select').value : '',
+      }),
+    });
+    const data = await resp.json();
+    if (data.rate_limit) {
+      document.getElementById('rate-limit-banner').style.display = 'block';
+      document.getElementById('rl-wait').textContent = data.wait || 'a few minutes';
+      statusEl.textContent = `⏱️ Rate limit hit. Wait ${data.wait} or switch model in Settings.`;
+      return;
+    }
+    if (data.success && data.new_cases.length) {
+      state.tcList = [...state.tcList, ...data.new_cases];
+      statusEl.textContent = `✅ ${data.new_cases.length} cases added! Total: ${state.tcList.length}`;
+      document.getElementById('m-tc').textContent = state.tcList.length;
+      document.getElementById('hdr-tc').textContent = state.tcList.length;
+      document.getElementById('tb-results-badge').textContent = state.tcList.length;
+      document.getElementById('dl-more-btn').style.display = 'block';
+      updateDownloadBtns();
+      showToast(`Added ${data.new_cases.length} new test cases`, 'ok');
+    } else {
+      statusEl.textContent = data.error || 'No new cases generated. Try again.';
+    }
+  } catch(e) { statusEl.textContent = 'Error: ' + e.message; }
+  finally { btn.disabled = false; icon.textContent = '🔄'; }
+}
+
+// ── Chat ───────────────────────────────────────────────────────
+function buildSystemPrompt() {
+  const rd = state.reportData, rv = state.reviewData;
+  let base = `You are a senior QA Analyst and Business Analyst with 20 years of banking and fintech experience.
+Answer questions clearly, professionally, and concisely using the context below.
+Format answers with bullet points or numbered lists where appropriate.
+
+=== CURRENT RUN ===
+USER STORY:
+${state.userStory}
+
+QA ANALYSIS REPORT:
+${state.reportRaw}
+
+TEST CASES SUMMARY (${state.tcList.length} total):
+${state.tcList.slice(0,30).map((tc,i)=>`${i+1}. [${tc['Test Key']||i+1}] ${tc['Summary']||''} — Expected: ${tc['Expected Result']||''}`).join('\n')}
+
+REVIEWER FINDINGS:
+Coverage Score: ${rv.coverage_score||'N/A'}%
+Agent 1 Feedback: ${JSON.stringify(rv.agent1_feedback||[])}
+Agent 2 Feedback: ${JSON.stringify(rv.agent2_feedback||[])}
+Business Gap Solutions: ${JSON.stringify(rv.business_gap_solutions||[])}
+Technical Solutions: ${JSON.stringify(rv.technical_concern_solutions||[])}
+Reviewer Summary: ${rv.reviewer_summary||''}
+Overall Risk: ${rd.overall_risk_level||'N/A'}`;
+
+  if (state.compareIds.length > 0) {
+    const cmpRuns = state.compareIds.map(id => histCache.find(e=>e.id===id)).filter(Boolean);
+    if (cmpRuns.length) {
+      base += `\n\n=== COMPARISON RUNS (${cmpRuns.length} selected) ===`;
+      cmpRuns.forEach((e, idx) => {
+        const erv = e.reviewData||{}, erd = e.reportData||{};
+        const label = e.label ? `"${e.label}" ` : '';
+        base += `
+
+--- Comparison Run ${idx+1} ${label}(${fmtDate(e.ts)}) ---
+USER STORY: ${e.userStory}
+TEST CASES (${e.tcList.length} total):
+${e.tcList.slice(0,30).map((tc,i)=>`${i+1}. [${tc['Test Key']||i+1}] ${tc['Summary']||''} — Expected: ${tc['Expected Result']||''}`).join('\n')}
+Coverage: ${erv.coverage_score||'N/A'}% | Overall Risk: ${erd.overall_risk_level||'N/A'}
+Business Gaps: ${JSON.stringify(erd.identified_business_gaps||[])}
+Gap Solutions: ${JSON.stringify(erv.business_gap_solutions||[])}
+Reviewer Summary: ${erv.reviewer_summary||''}`;
+      });
+      base += `\n\nYou can compare test cases, coverage, risk and gaps across all ${cmpRuns.length+1} runs when asked.`;
+    }
+  }
+  return base;
+}
+
+function appendMsg(role, content) {
+  const container = document.getElementById('chat-messages');
+  const empty = document.getElementById('chat-empty');
+  if (empty) empty.style.display = 'none';
+  const div = document.createElement('div');
+  div.className = role === 'user' ? 'msg-user' : 'msg-bot';
+  if (role === 'user') {
+    div.innerHTML = `<div class="bubble">${escHtml(content)}</div>`;
+  } else {
+    div.innerHTML = `<div class="avatar">🤖</div><div class="bubble">${escHtml(content).replace(/\n/g,'<br>')}</div>`;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function sendChat() {
+  if (!state.done) return;
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendMsg('user', msg);
+  state.chatHistory.push({role:'user', content: msg});
+  const sendBtn = document.getElementById('send-btn');
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<span class="spinner"></span>';
+  const messages = [{role:'system', content: buildSystemPrompt()}, ...state.chatHistory];
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        messages,
+        ollama_url: state.llmMode==='ollama' ? document.getElementById('ollama-url').value.trim() : '',
+        ollama_model: state.llmMode==='ollama' ? document.getElementById('ollama-main').value.trim() : '',
+      }),
+    });
+    const data = await resp.json();
+    const reply = data.reply || 'No response.';
+    appendMsg('bot', reply);
+    state.chatHistory.push({role:'assistant', content: reply});
+    document.getElementById('clear-btn').style.display = 'inline-flex';
+  } catch(e) { appendMsg('bot', 'Error: ' + e.message); }
+  finally { sendBtn.disabled = false; sendBtn.textContent = 'Send ➤'; }
+}
+
+function sendChip(el) {
+  document.getElementById('chat-input').value = el.textContent;
+  sendChat();
+}
+
+function clearChat() {
+  state.chatHistory = [];
+  document.getElementById('chat-messages').innerHTML = '<div class="chat-empty-msg" id="chat-empty">Chat cleared. Ask a new question.</div>';
+  document.getElementById('clear-btn').style.display = 'none';
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `show ${type}`;
+  setTimeout(() => { t.className = ''; }, 3500);
+}
+
+function riskColor(r) {
+  const m = {high:'badge-high', medium:'badge-medium', low:'badge-low'};
+  return m[(r||'').toLowerCase()] || 'badge-medium';
+}
+
+// ── Figma Tab ──────────────────────────────────────────────────
+let figmaB64 = null;
+let figmaFileName = null;
+let figmaTCList = [];
+
+function switchFigmaMode(mode, btn) {
+  document.getElementById('figma-panel-design').style.display = mode === 'design' ? 'block' : 'none';
+  document.getElementById('figma-panel-screenshot').style.display = mode === 'screenshot' ? 'block' : 'none';
+  btn.closest('.atab-bar').querySelectorAll('.atab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function runFigmaAnalysis() {
+  const url   = document.getElementById('figma-url').value.trim();
+  const token = document.getElementById('figma-token').value.trim();
+  const story = document.getElementById('figma-story').value.trim();
+  if (!url || !token) { showToast('Enter Figma URL and access token first.', 'err'); return; }
+
+  const btn  = document.getElementById('figma-analyze-btn');
+  const icon = document.getElementById('figma-analyze-icon');
+  const lbl  = document.getElementById('figma-analyze-label');
+  const stat = document.getElementById('figma-analyze-status');
+  const errEl= document.getElementById('figma-analyze-error');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner"></span>';
+  lbl.textContent = 'Fetching Figma file…';
+  stat.style.display = 'block';
+  stat.textContent = 'Connecting to Figma API…';
+  errEl.style.display = 'none';
+
+  const groqModel = document.getElementById('groq-model-select')?.value || '';
+  try {
+    const resp = await fetch('/api/figma/analyze', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ figma_url: url, figma_token: token, user_story: story, groq_model: groqModel }),
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      errEl.textContent = '❌ ' + (data.error || 'Unknown error');
+      errEl.style.display = 'block';
+      stat.style.display = 'none';
+      return;
+    }
+    figmaTCList = data.tc_list || [];
+    stat.textContent = `✅ Done — ${data.frames_count} frames, ${data.components_count} components analysed`;
+
+    // Show results
+    document.getElementById('figma-empty-state').style.display = 'none';
+    const meta = document.getElementById('figma-results-meta');
+    meta.style.display = 'block';
+    meta.innerHTML = `
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem">
+        <span class="hbadge hb-tc">${figmaTCList.length} test cases</span>
+        <span class="hbadge" style="background:#6c63ff18;color:var(--accent);border-color:#6c63ff40">📁 ${escHtml(data.file_name)}</span>
+        <span class="hbadge hb-cov">${data.frames_count} frames</span>
+      </div>`;
+
+    const listEl = document.getElementById('figma-tc-list');
+    listEl.style.display = 'block';
+    listEl.innerHTML = figmaTCList.map((tc, i) => {
+      const pri = tc.Priority || tc.priority || 'Medium';
+      const priCls = {critical:'badge-high',high:'badge-high',medium:'badge-medium',low:'badge-low'}[pri.toLowerCase()] || 'badge-medium';
+      return `<div style="padding:.6rem .7rem;border-bottom:1px solid var(--border);font-size:.82rem">
+        <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.25rem;flex-wrap:wrap">
+          <span style="color:var(--accent);font-weight:700;font-size:.75rem">${escHtml(tc['Test Key'] || tc.test_key || 'TC-'+(i+1))}</span>
+          <span class="badge ${priCls}" style="font-size:.68rem">${pri}</span>
+          <span style="color:var(--dim);font-size:.7rem">${escHtml(tc.Category || tc.category || '')}</span>
+        </div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:.2rem">${escHtml(tc.Summary || tc.summary || '')}</div>
+        <div style="color:var(--dim);font-size:.77rem">${escHtml((tc['Expected Result'] || tc.expected_result || '').slice(0, 120))}</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('figma-export-bar').style.display = 'block';
+    showToast(`Generated ${figmaTCList.length} UI/UX test cases from Figma!`, 'ok');
+  } catch(e) {
+    errEl.textContent = '❌ Request failed: ' + e.message;
+    errEl.style.display = 'block';
+    stat.style.display = 'none';
+  } finally {
+    btn.disabled = false;
+    icon.textContent = '🎨';
+    lbl.textContent = 'Analyze Figma & Generate Tests';
+  }
+}
+
+async function downloadFigmaTCs() {
+  if (!figmaTCList.length) return;
+  const resp = await fetch('/api/download/excel', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({test_cases: figmaTCList}),
+  });
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'figma_ui_test_cases.xlsx'; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Downloaded ${figmaTCList.length} Figma test cases!`, 'ok');
+}
+
+function handleFigmaFile(file) {
+  if (!file) return;
+  figmaFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result.split(',')[1];
+    figmaB64 = b64;
+    document.getElementById('figma-preview-img').src = e.target.result;
+    document.getElementById('figma-preview-name').textContent = file.name;
+    document.getElementById('figma-preview-wrap').style.display = 'block';
+    document.getElementById('figma-drop-zone').style.display = 'none';
+    document.getElementById('figma-review-btn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleFigmaDrop(event) {
+  event.preventDefault();
+  document.getElementById('figma-drop-zone').style.borderColor = 'var(--border)';
+  const file = event.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleFigmaFile(file);
+  else showToast('Please drop an image file (PNG or JPG).', 'err');
+}
+
+async function runScreenshotReview() {
+  if (!figmaB64) { showToast('Upload a screenshot first.', 'err'); return; }
+  const story = document.getElementById('figma-screenshot-story').value.trim();
+  const btn   = document.getElementById('figma-review-btn');
+  const icon  = document.getElementById('figma-review-icon');
+  const lbl   = document.getElementById('figma-review-label');
+  const stat  = document.getElementById('figma-review-status');
+  const errEl = document.getElementById('figma-review-error');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner"></span>';
+  lbl.textContent = 'Reviewing…';
+  stat.style.display = 'block';
+  stat.textContent = 'AI is analysing the screenshot…';
+  errEl.style.display = 'none';
+
+  const groqModel = document.getElementById('groq-model-select')?.value || '';
+  try {
+    const resp = await fetch('/api/figma/review-screenshot', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ image_base64: figmaB64, image_name: figmaFileName || 'Screenshot', user_story: story, groq_model: groqModel }),
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      errEl.textContent = '❌ ' + (data.error || 'Review failed');
+      errEl.style.display = 'block';
+      stat.style.display = 'none';
+      return;
+    }
+    stat.textContent = '✅ Review complete';
+    renderFigmaReview(data.review, data.image_name);
+    showToast('Screenshot review complete!', 'ok');
+  } catch(e) {
+    errEl.textContent = '❌ ' + e.message;
+    errEl.style.display = 'block';
+    stat.style.display = 'none';
+  } finally {
+    btn.disabled = false;
+    icon.textContent = '🔍';
+    lbl.textContent = 'Review Screenshot';
+  }
+}
+
+function renderFigmaReview(review, imageName) {
+  document.getElementById('figma-review-empty').style.display = 'none';
+  const out = document.getElementById('figma-review-output');
+  out.style.display = 'block';
+
+  const score = review.overall_score ?? '—';
+  const scoreColor = score >= 80 ? 'var(--accent2)' : score >= 60 ? 'var(--warn)' : 'var(--fail)';
+
+  function _section(title, items, color) {
+    if (!Array.isArray(items) || !items.length) return '';
+    return `<div style="margin-bottom:.8rem">
+      <div style="font-size:.78rem;font-weight:700;color:${color};margin-bottom:.35rem">${title}</div>
+      <ul style="padding-left:1rem;margin:0">
+        ${items.map(i => `<li style="font-size:.78rem;color:var(--text);margin-bottom:.2rem">${escHtml(String(i))}</li>`).join('')}
+      </ul>
+    </div>`;
+  }
+
+  const raw = review.raw_analysis;
+  if (raw) {
+    out.innerHTML = `<div style="font-size:.82rem;color:var(--text);white-space:pre-wrap;line-height:1.6">${escHtml(raw)}</div>`;
+    return;
+  }
+
+  out.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;padding:.8rem;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:2rem;font-weight:800;color:${scoreColor}">${score}</div>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--text)">${escHtml(imageName || 'Screenshot')}</div>
+        <div style="font-size:.73rem;color:var(--dim)">Overall design score / 100</div>
+      </div>
+    </div>
+    ${_section('✅ Positive Aspects', review.positive_aspects, 'var(--accent2)')}
+    ${_section('🧩 Missing States', review.missing_states, 'var(--warn)')}
+    ${_section('♿ Accessibility Issues', review.accessibility_issues, 'var(--fail)')}
+    ${_section('🏷️ Label Issues', review.label_issues, 'var(--warn)')}
+    ${_section('🔄 UX Issues', review.ux_issues, '#e07b39')}
+    ${_section('💡 Recommendations', review.recommendations, 'var(--accent)')}
+  `;
+}
+
+// ── Init ───────────────────────────────────────────────────────
+selectMode('groq');
+selectExport('xlsx');
+initAuth();
+</script>
+</body>
+</html>
