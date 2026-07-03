@@ -55,6 +55,7 @@ Beyond text-based generation, QA Ninjas can also turn **Figma designs and screen
    SQLite (history.db)
    users / sessions / runs
 ```
+<img width="489" height="445" alt="image" src="https://github.com/user-attachments/assets/8c5952b2-bba7-436c-ad28-1218aac9ec76" />
 
 ---
 ### 🧠 Agent Pipeline Internals (`backend/agents/`)
